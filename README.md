@@ -87,4 +87,3 @@ names:
 
 ---
 
-_Phát triển bởi **Tuấn** - HUIT._
