@@ -6,7 +6,6 @@ Nhận diện người lớn và trẻ em theo thời gian thực bằng YOLO tr
 ![Ultralytics](https://img.shields.io/badge/ultralytics-%3E%3D8.4.37-orange?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
-
 ## Tính năng
 
 - Nhận diện 2 lớp: **Adult** (xanh lá) và **Child** (đỏ)
@@ -15,11 +14,9 @@ Nhận diện người lớn và trẻ em theo thời gian thực bằng YOLO tr
 - Fine-tune từ `yolo26s.pt` — 100 epoch, batch 8, imgsz 640
 - Bounding box + confidence score hiển thị trực tiếp qua OpenCV
 
-
 ## Tech stack
 
 Python 3.9+ · ultralytics ≥8.4.37 · opencv-python · numpy · pandas · scikit-learn · joblib
-
 
 ## Bắt đầu
 
@@ -32,7 +29,7 @@ Python 3.9+ · ultralytics ≥8.4.37 · opencv-python · numpy · pandas · scik
 ### Cài đặt
 
 ```bash
-git clone https://github.com/<!-- TODO: verify -->/detect_adult-child.git
+git clone https://github.com/345bc/detect_adult-child.git
 cd detect_adult-child
 pip install -r requirements.txt
 ```
@@ -42,7 +39,6 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
-
 
 ## Sử dụng
 
@@ -64,19 +60,17 @@ python train.py
 
 Trọng số tốt nhất lưu tại `runs/train/adult_child_v1/weights/best.pt`.
 
-
 ## Cấu hình
 
-| Tham số | Mặc định | Mô tả |
-|---|---|---|
-| `model_path` | `runs/detect/runs/train/adult_child_v1/weights/best.pt` | Đường dẫn file trọng số |
-| `source` | `datasets/test/images/test_00020.jpg` | Nguồn đầu vào (`int` = webcam) |
-| `conf` | `0.5` | Ngưỡng confidence tối thiểu |
-| `device` | `0` | GPU index hoặc `"cpu"` |
-| `epochs` | `100` | Số epoch khi train |
-| `batch` | `8` | Batch size khi train |
-| `imgsz` | `640` | Kích thước ảnh đầu vào |
-
+| Tham số      | Mặc định                                                | Mô tả                          |
+| ------------ | ------------------------------------------------------- | ------------------------------ |
+| `model_path` | `runs/detect/runs/train/adult_child_v1/weights/best.pt` | Đường dẫn file trọng số        |
+| `source`     | `datasets/test/images/test_00020.jpg`                   | Nguồn đầu vào (`int` = webcam) |
+| `conf`       | `0.5`                                                   | Ngưỡng confidence tối thiểu    |
+| `device`     | `0`                                                     | GPU index hoặc `"cpu"`         |
+| `epochs`     | `100`                                                   | Số epoch khi train             |
+| `batch`      | `8`                                                     | Batch size khi train           |
+| `imgsz`      | `640`                                                   | Kích thước ảnh đầu vào         |
 
 ## Cấu trúc dự án
 
@@ -93,7 +87,6 @@ detect_adult-child/
 └── yolo26s.pt          # Trọng số pre-trained
 ```
 
-
 ## Đóng góp
 
 1. Fork repo và tạo branch từ `main`.
@@ -101,7 +94,6 @@ detect_adult-child/
 3. Mở Pull Request — mô tả rõ thay đổi và lý do.
 
 <!-- TODO: thêm CONTRIBUTING.md -->
-
 
 ## License
 
