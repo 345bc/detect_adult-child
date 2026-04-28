@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.dll
+*.dylib
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# Model files (thường rất lớn)
+*.h5
+*.pkl
+*.pt
+*.pth
+*.onnx
+
+# Data files
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+*.zip
+*.tar
+*.gz
+
+# Environment variables
+.env
+*.env
+
+# Logs
+*.log
+logs/
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# Project specific
+data/
+datasets/
+dataroot/
+weights/
+checkpoints/
+outputs/
+root_datasets/
