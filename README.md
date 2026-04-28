@@ -1,89 +1,112 @@
-# 🕵️ Adult & Child Detection System (YOLO)
+# Adult & Child Detection
 
-Dự án nhận diện Người lớn (Adult) và Trẻ em (Child) sử dụng framework YOLO26 (Ultralytics). Hệ thống được tối ưu hóa để chạy trên các dòng máy có GPU tầm trung (như RTX 2050).
+Nhận diện người lớn và trẻ em theo thời gian thực bằng YOLO trên ảnh, video và webcam.
 
----
+![Python](https://img.shields.io/badge/python-3.9%2B-blue?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+![Framework](https://img.shields.io/badge/ultralytics-≥8.4.37-orange?style=flat-square)
 
-## 🏗️ Cấu trúc dự án
 
-```text
-detect_adult-child/
-├── datasets/           # Dữ liệu huấn luyện (images, labels)
-├── runs/               # Kết quả sau khi huấn luyện (weights, logs)
-├── src/                # Các công cụ bổ trợ (labeling, rename, utils)
-├── test_case/          # Video/Ảnh dùng để test thực tế
-├── data.yaml           # Cấu hình đường dẫn dataset cho YOLO
-├── main.py             # Script chạy nhận diện (Inference)
-├── train.py            # Script huấn luyện mô hình
-├── requirements.txt    # Danh sách thư viện cần thiết
-└── yolo26s.pt          # Trọng số mô hình gốc (Pre-trained)
-```
+## Tính năng
 
----
+- Nhận diện 2 lớp: **Adult** (xanh lá) và **Child** (đỏ)
+- Hỗ trợ 3 nguồn đầu vào: webcam, video, ảnh tĩnh
+- Chạy GPU (RTX 2050 / 4 GB VRAM) với độ trễ thấp
+- Fine-tune từ `yolo26s.pt` — 100 epoch, batch 8, imgsz 640
+- Bounding box + confidence score hiển thị trực tiếp qua OpenCV
 
-## 🚀 Cài đặt
 
-1. **Yêu cầu hệ thống:** Python 3.9+ và CUDA (nếu muốn chạy GPU).
-2. **Cài đặt thư viện:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Tech stack
 
----
+Python 3.9+ · Ultralytics YOLO · OpenCV · NumPy · scikit-learn · pandas
 
-## 🛠️ Hướng dẫn sử dụng
 
-### 1. Huấn luyện mô hình (`train.py`)
+## Bắt đầu
 
-Đảm bảo bạn đã chuẩn bị dataset trong thư mục `datasets/` và cấu hình đúng file `data.yaml`.
+### Yêu cầu
+
+- Python 3.9+
+- CUDA toolkit (để chạy GPU)
+- GPU có ≥ 4 GB VRAM (khuyến nghị RTX 2050 trở lên)
+
+### Cài đặt
 
 ```bash
-python train.py
+git clone https://github.com/<your-username>/detect_adult-child.git
+cd detect_adult-child
+pip install -r requirements.txt
 ```
 
-_Mặc định script sẽ sử dụng GPU 0 (RTX 2050) với batch size là 8._
-
-### 2. Chạy nhận diện (`main.py`)
-
-Script hỗ trợ 3 chế độ truyền dữ liệu đầu vào:
-
-- **Webcam:** Đặt `source = 0`
-- **Video:** Đặt `source = "đường/dẫn/video.mp4"`
-- **Ảnh:** Đặt `source = "đường/dẫn/ảnh.jpg"`
+### Chạy
 
 ```bash
 python main.py
 ```
 
-_Nhấn phím **'Q'** để thoát khi đang chạy video/webcam._
 
-### 3. Công cụ hỗ trợ (`src/`)
+## Sử dụng
 
-- `manual_labeling.py`: Công cụ hỗ trợ gán nhãn thủ công (nếu cần).
-- `rename.py`: Đổi tên file hàng loạt để chuẩn hóa dataset.
+Chỉnh `source` trong `main.py` trước khi chạy:
 
----
+```python
+# Webcam
+source = 0
 
-## 📊 Cấu hình Dataset (`data.yaml`)
+# Video
+source = r"test_case/test_video_00001.mp4"
 
-```yaml
-path: C:/Users/Tuan/Desktop/detect_adult-child/datasets
-train: train/images
-val: valid/images
-test: test/images
-
-names:
-  0: Adult
-  1: Child
+# Ảnh
+source = r"datasets/test/images/test_00020.jpg"
 ```
 
----
+Nhấn **Q** để thoát khi đang chạy video hoặc webcam.
 
-## 📝 Nhật ký cập nhật
+### Huấn luyện lại
 
-- **V1.0:** Khởi tạo dự án, thiết lập môi trường YOLO11.
-- **V1.1:** Fix lỗi Unicode escape path trên Windows.
-- **V1.2:** Tối ưu hóa logic xử lý ảnh/video trong `main.py`.
+```bash
+python train.py
+```
 
----
+Kết quả lưu tại `runs/train/adult_child_v1/weights/best.pt`.
 
+
+## Cấu hình
+
+| Biến / Tham số | Mặc định | Mô tả |
+|---|---|---|
+| `model_path` | `runs/detect/runs/train/adult_child_v1/weights/best.pt` | Đường dẫn tới file trọng số |
+| `source` | `datasets/test/images/test_00020.jpg` | Nguồn đầu vào (int = webcam) |
+| `conf` | `0.5` | Ngưỡng confidence tối thiểu |
+| `device` | `0` | GPU index (`0`) hoặc `"cpu"` |
+| `epochs` | `100` | Số epoch huấn luyện |
+| `batch` | `8` | Batch size khi train |
+
+
+## Cấu trúc dự án
+
+```text
+detect_adult-child/
+├── datasets/           # Ảnh + nhãn (train / valid / test)
+├── runs/               # Kết quả train và inference
+├── utils/              # Công cụ hỗ trợ (labeling, rename)
+├── test_case/          # Video / ảnh test thực tế
+├── data.yaml           # Cấu hình dataset cho YOLO
+├── main.py             # Script inference
+├── train.py            # Script huấn luyện
+├── requirements.txt    # Thư viện phụ thuộc
+└── yolo26s.pt          # Trọng số pre-trained
+```
+
+
+## Đóng góp
+
+1. Fork repo và tạo branch từ `main`.
+2. Commit theo format: `feat:`, `fix:`, `docs:`.
+3. Mở Pull Request — mô tả rõ thay đổi và lý do.
+
+<!-- TODO: thêm CONTRIBUTING.md -->
+
+
+## License
+
+MIT
