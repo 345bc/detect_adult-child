@@ -25,6 +25,6 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         print(f"✅ Đang chạy trên GPU: {torch.cuda.get_device_name(0)}")
     else:
-        print("⚠️ Không tìm thấy GPU, code sẽ chạy trên CPU (rất chậm)!")
+        print("⚠️ Không tìm thấy GPU, code sẽ chạy trên CPU")
 
     train_model()

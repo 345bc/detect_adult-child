@@ -1,7 +1,7 @@
-path: datasets # dataset root dir (relative to training script or absolute)
-train: train/images # train images (relative to 'path')
-val: val/images # val images (relative to 'path')
-test: test/images # test images (optional)
+path: C:/Users/Tuan/Desktop/detect_adult-child/datasets # dataset root dir (absolute path)
+train: train/images
+val: val/images
+test: test/images
 
 nc: 2
 # Classes
