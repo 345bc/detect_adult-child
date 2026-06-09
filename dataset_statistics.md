@@ -171,6 +171,18 @@ Toàn bộ **732 ảnh độc nhất** (đã loại bỏ trùng lặp) đã đư
 | **Child (1)** (Trẻ em)    |    699    |   203   |   112    |  **1.014**   |  39.49%   |
 | **Tổng**                  | **1.762** | **507** | **299**  |  **2.568**   | **100%**  |
 
+### Phân tích thành phần đối tượng trong ảnh (Image Composition Analysis):
+
+Dưới đây là thống kê chi tiết số lượng ảnh chứa chỉ người lớn, chỉ trẻ em, hoặc có cả hai nhóm đối tượng xuất hiện đồng thời trên tập dữ liệu sạch (732 ảnh):
+
+| Phân loại ảnh               | Tập Train | Tập Val | Tập Test | Tổng số ảnh | Tỷ lệ (%) |
+| :-------------------------- | :-------: | :-----: | :------: | :---------: | :-------: |
+| **Chỉ có Người lớn (Adult)** |    130    |   40    |    18    |   **188**   |  25.68%   |
+| **Chỉ có Trẻ em (Child)**    |    104    |   31    |    18    |   **153**   |  20.90%   |
+| **Có cả hai đối tượng**     |    278    |   75    |    38    |   **391**   |  53.42%   |
+| **Ảnh trống (Background)**  |     0     |    0    |    0     |    **0**    |   0.00%   |
+| **Tổng cộng ảnh**           |  **512**  | **146** |  **74**  |   **732**   |  100.00%  |
+
 ### Nhận xét & Đánh giá cuối cùng:
 
 1. **Tính cân đối:** Số lượng ảnh ở tập `Val` (146 ảnh) và tập `Test` (74 ảnh) đã tăng đáng kể và đạt đúng tỷ lệ khoa học, giúp kết quả đánh giá hiệu năng mô hình sau huấn luyện có độ tin cậy cực kỳ cao.
@@ -179,9 +191,39 @@ Toàn bộ **732 ảnh độc nhất** (đã loại bỏ trùng lặp) đã đư
 
 ---
 
-## 10. Kết Quả Huấn Luyện & Đánh Giá Mô Hình (Training & Evaluation Results)
+## 10. Cấu Hình Mô Hình & Tham Số Huấn Luyện (Model & Training Configuration)
 
-Sau khi phân chia lại dữ liệu sạch, mô hình đã được chạy huấn luyện hoàn chỉnh với **100 epochs** sử dụng GPU NVIDIA RTX 2050. Kết quả huấn luyện và đánh giá cụ thể như sau:
+Mô hình được thiết lập và tinh chỉnh thông qua file cấu hình huấn luyện chi tiết. Dưới đây là các tham số cốt lõi được áp dụng trong quá trình huấn luyện:
+
+- **Kiến trúc mô hình gốc (Base Model):** `yolo26s.pt` (Mô hình YOLOv8 thu gọn được tối ưu hóa: 122 layers, 9,465,954 parameters, 20.5 GFLOPs).
+- **Kích thước ảnh đầu vào (Image Size):** `imgsz = 640` (Tự động đưa ảnh về kích thước 640x640).
+- **Kích thước lô huấn luyện (Batch Size):** `batch = 8`.
+- **Số lượng Epochs:** `100`.
+- **Trình tối ưu hóa (Optimizer):** `auto` (Hệ thống tự động lựa chọn bộ tối ưu phù hợp).
+- **Bộ đọc dữ liệu (Workers):** `workers = 4`.
+- **Độ chính xác hỗn hợp (AMP):** `amp = True` (Sử dụng Mixed Precision để tiết kiệm VRAM và tăng tốc độ xử lý).
+
+### Tham số tối ưu hóa tốc độ học (Hyperparameters):
+
+- **Tỷ lệ học ban đầu (Initial Learning Rate):** `lr0 = 0.01`
+- **Tỷ lệ học cuối cùng (Final Learning Rate):** `lrf = 0.01`
+- **Đà tối ưu (Momentum):** `momentum = 0.937`
+- **Hệ số suy giảm trọng số (Weight Decay):** `weight_decay = 0.0005`
+- **Số epoch khởi động (Warmup Epochs):** `warmup_epochs = 3.0`
+
+### Tăng cường dữ liệu (Data Augmentation):
+
+- **Mosaic Augmentation:** `mosaic = 1.0` (Bật tối đa ghép 4 ảnh ngẫu nhiên trong 90 epochs đầu, tự động tắt trong 10 epochs cuối: `close_mosaic = 10`).
+- **Lật ngang ngẫu nhiên (Horizontal Flip):** `fliplr = 0.5` (Xác suất lật ngang 50%).
+- **Dịch chuyển ngẫu nhiên (Translation):** `translate = 0.1` (Tối đa dịch chuyển 10%).
+- **Thu phóng ngẫu nhiên (Scaling):** `scale = 0.5` (Tối đa thu phóng 50%).
+- **Tăng cường HSV:** `hsv_h = 0.015` (Sắc độ), `hsv_s = 0.7` (Độ bão hòa), `hsv_v = 0.4` (Độ sáng).
+
+---
+
+## 11. Kết Quả Huấn Luyện & Đánh Giá Mô Hình (Training & Evaluation Results)
+
+Sau khi phân chia lại dữ liệu sạch, mô hình đã được chạy huấn luyện hoàn chỉnh với **100 epochs** sử dụng GPU NVIDIA RTX 2050 (4GB VRAM). Kết quả huấn luyện và đánh giá cụ thể như sau:
 
 ### A. Kết quả trên tập Xác thực (Validation Set - 146 ảnh / 507 đối tượng):
 
@@ -225,4 +267,5 @@ Sau khi phân chia lại dữ liệu sạch, mô hình đã được chạy hu�
 - **Độ chính xác cao:** Chỉ số mAP50 trên tập Test đạt tới **94.38%** chứng minh mô hình hoạt động vô cùng hiệu quả trong việc phân biệt người lớn và trẻ em.
 - **Khả năng nhận diện Trẻ em nổi trội:** Lớp `Child` đạt điểm mAP50 cực kỳ cao trên tập Test (**96.10%**), đây là điểm cộng lớn cho hệ thống đếm vé/kiểm soát an ninh vì trẻ em thường khó phát hiện và phân biệt hơn người lớn trong các góc quay từ trên cao.
 - **Tính tổng quát hóa tốt:** Kết quả đánh giá trên tập Test cao hơn tập Validation một chút (mAP50 từ 89.9% tăng lên 94.38%), chứng minh mô hình không bị quá khớp (overfitting) và có khả năng tổng quát hóa dữ liệu mới cực kỳ tốt.
+
 
