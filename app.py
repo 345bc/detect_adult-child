@@ -9,39 +9,128 @@ import pandas as pd
 from datetime import datetime
 import torch
 
-st.set_page_config(page_title="AI Ticket Counter Enterprise", layout="wide")
-model_path = r"runs/detect/runs/train/adult_child_v1/weights/best.pt"
+# ===================== PAGE CONFIG =====================
+st.set_page_config(
+    page_title="AI Ticket Counter Pro",
+    page_icon="🎟️",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
+# ===================== CUSTOM CSS =====================
+st.markdown(
+    """
+    <style>
+        .stApp {
+            background: linear-gradient(135deg, #0f172a 0%, #111827 45%, #020617 100%);
+            color: #e5e7eb;
+        }
+        [data-testid="stSidebar"] {
+            background: rgba(15, 23, 42, 0.96);
+            border-right: 1px solid rgba(148, 163, 184, 0.18);
+        }
+        [data-testid="stSidebar"] * {
+            color: #e5e7eb;
+        }
+        .main-title {
+            padding: 1.2rem 1.4rem;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(37, 99, 235, .28), rgba(14, 165, 233, .13));
+            border: 1px solid rgba(96, 165, 250, .25);
+            box-shadow: 0 18px 45px rgba(0,0,0,.25);
+            margin-bottom: 1.2rem;
+        }
+        .main-title h1 {
+            margin: 0;
+            font-size: 2.1rem;
+            color: #f8fafc;
+            letter-spacing: -0.03em;
+        }
+        .main-title p {
+            margin: .45rem 0 0 0;
+            color: #cbd5e1;
+            font-size: 1rem;
+        }
+        .glass-card {
+            padding: 1.05rem;
+            border-radius: 20px;
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 18px 35px rgba(0,0,0,.22);
+            margin-bottom: 1rem;
+        }
+        .status-pill {
+            display: inline-block;
+            padding: .38rem .72rem;
+            border-radius: 999px;
+            background: rgba(34, 197, 94, .16);
+            border: 1px solid rgba(34, 197, 94, .35);
+            color: #86efac;
+            font-weight: 700;
+            font-size: .85rem;
+        }
+        .small-muted { color: #94a3b8; font-size: .9rem; }
+        div[data-testid="stMetric"] {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(148, 163, 184, .18);
+            padding: 1rem;
+            border-radius: 18px;
+            box-shadow: 0 12px 28px rgba(0,0,0,.18);
+        }
+        div[data-testid="stMetricLabel"] p { color: #cbd5e1 !important; }
+        div[data-testid="stMetricValue"] { color: #f8fafc !important; }
+        .stButton > button {
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid rgba(96, 165, 250, .35);
+            background: linear-gradient(135deg, #2563eb, #0891b2);
+            color: white;
+            font-weight: 700;
+            padding: .75rem 1rem;
+        }
+        .stButton > button:hover {
+            border-color: #93c5fd;
+            filter: brightness(1.08);
+        }
+        .section-title {
+            color: #f8fafc;
+            font-weight: 800;
+            margin: .2rem 0 .7rem 0;
+            font-size: 1.1rem;
+        }
+        hr { border-color: rgba(148, 163, 184, .2); }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ===================== MODEL =====================
+MODEL_PATH = "best.pt"
 
 @st.cache_resource
 def load_model():
-    model = YOLO("best.pt")
-    # Tu dong cau hinh phan cung toi uu hoa GPU hoac CPU de tang toc
-    device = "cuda" if torch.torch.cuda.is_available() else "cpu"
+    model = YOLO(MODEL_PATH)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
-    return model
+    return model, device
 
+model, device = load_model()
 
-model = load_model()
-
-# Khoi tao cac bien luu tru trang thai va lich su thong ke hieu nang cao
-if "adult_in" not in st.session_state:
-    st.session_state.adult_in = 0
-if "child_in" not in st.session_state:
-    st.session_state.child_in = 0
-if "adult_out" not in st.session_state:
-    st.session_state.adult_out = 0
-if "child_out" not in st.session_state:
-    st.session_state.child_out = 0
-if "counted_in_ids" not in st.session_state:
-    st.session_state.counted_in_ids = set()
-if "counted_out_ids" not in st.session_state:
-    st.session_state.counted_out_ids = set()
-if "track_history" not in st.session_state:
-    st.session_state.track_history = {}
-# Dung danh sach thuan de tranh thoi gian cap phat bo nho cua Pandas DataFrame
-if "log_list" not in st.session_state:
-    st.session_state.log_list = []
+# ===================== SESSION STATE =====================
+def init_state():
+    defaults = {
+        "adult_in": 0,
+        "child_in": 0,
+        "adult_out": 0,
+        "child_out": 0,
+        "counted_in_ids": set(),
+        "counted_out_ids": set(),
+        "track_history": {},
+        "log_list": [],
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
 
 def reset_counters():
@@ -54,108 +143,114 @@ def reset_counters():
     st.session_state.track_history = {}
     st.session_state.log_list = []
 
+init_state()
 
-st.title("Hệ Thống Kiểm Soát Vé Và Phân Tích Nhân Khẩu Học Real-time")
-st.markdown("---")
+# ===================== SIDEBAR =====================
+st.sidebar.markdown("## 🎛️ Bảng điều khiển")
+st.sidebar.markdown(f"<span class='status-pill'>Model: {device.upper()}</span>", unsafe_allow_html=True)
+st.sidebar.markdown("---")
 
-st.sidebar.title("Cấu Hình Hệ Thống")
 source_type = st.sidebar.selectbox(
-    "Chọn nguồn đầu vào:",
+    "Nguồn đầu vào",
     ("Hình ảnh", "Video (File)", "Webcam Máy Tính", "Điện Thoại (IP Camera)"),
 )
 
 ip_url = ""
 if source_type == "Điện Thoại (IP Camera)":
-    ip_url = st.sidebar.text_input(
-        "Nhập URL IP Webcam:",
-        "http://192.168.1.5:8080/video",
-        help="Nhập địa chỉ truyền luồng dữ liệu cấp phát từ ứng dụng IP Webcam trên điện thoại.",
-    )
+    ip_url = st.sidebar.text_input("URL IP Camera", "http://192.168.1.5:8080/video")
 
-conf_threshold = st.sidebar.slider(
-    "Ngưỡng tin cậy (Confidence):",
-    0.1,
-    1.0,
-    0.4,
-    0.05,
-    help="Độ chính xác tối thiểu để AI giữ lại khung nhận diện đối tượng.",
-)
-
-line_position = st.sidebar.slider(
-    "Vị trí vạch kiểm soát (Tỷ lệ %):",
-    10,
-    90,
-    50,
-    5,
-    help="Điều chỉnh cao độ hoặc tọa độ ngang của vạch kiểm soát ảo tính theo phần trăm.",
-)
-
+conf_threshold = st.sidebar.slider("Ngưỡng tin cậy", 0.1, 1.0, 0.4, 0.05)
+line_position = st.sidebar.slider("Vị trí vạch kiểm soát (%)", 10, 90, 50, 5)
 direction = st.sidebar.selectbox(
-    "Chiều di chuyển xác định VÀO:",
-    (
-        "Từ Trên xuống Dưới",
-        "Từ Dưới lên Trên",
-        "Từ Trái sang Phải",
-        "Từ Phải sang Trái",
-    ),
-    help="Chọn hướng di chuyển hợp lệ cắt qua vạch để tính toán lượt vào cổng.",
+    "Chiều tính là VÀO",
+    ("Từ Trên xuống Dưới", "Từ Dưới lên Trên", "Từ Trái sang Phải", "Từ Phải sang Trái"),
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### Tham số Hồi quy Chiều cao")
+st.sidebar.markdown("### 📏 Hồi quy chiều cao")
+w1 = st.sidebar.number_input("w1 - trọng số chiều cao box", value=0.35)
+w2 = st.sidebar.number_input("w2 - trọng số vị trí chân", value=0.12)
+bias = st.sidebar.number_input("bias - sai số hệ thống", value=45.0)
 
-w1 = st.sidebar.number_input("Trọng số khung hình (w1):", value=0.35)
-w2 = st.sidebar.number_input("Trọng số vị trí chân (w2):", value=0.12)
-bias = st.sidebar.number_input("Sai số hệ thống (bias):", value=45.0)
-
-if st.sidebar.button("Reset hệ thống", on_click=reset_counters):
-    st.toast("Đã xóa toàn bộ cơ sở dữ liệu đếm!")
-
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Reset hệ thống", on_click=reset_counters):
+    st.toast("Đã reset toàn bộ bộ đếm")
 slot_fps = st.sidebar.empty()
 
-# Chia bo cuc hien thi thanh hai cot song song ty le 7:3 de tranh cuon trang
-main_col1, main_col2 = st.columns([7, 3])
+# ===================== HEADER =====================
+st.markdown(
+    """
+    <div class="main-title">
+        <h1>🎟️ AI Ticket Counter Pro</h1>
+        <p>Nhận diện người lớn / trẻ em, đếm lượt vào - ra, ước tính doanh thu và theo dõi thời gian thực bằng YOLO.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-with main_col1:
-    st_frame = st.empty()
-
-with main_col2:
-    st.markdown("### Thống kê lượt VÀO")
-    slot_adult_in = st.empty()
-    slot_child_in = st.empty()
-    slot_total_in = st.empty()
-    st.markdown("---")
-    st.markdown("### Thống kê lượt RA")
-    slot_adult_out = st.empty()
-    slot_child_out = st.empty()
-    slot_total_out = st.empty()
-    st.markdown("---")
-    slot_revenue = st.empty()
-    chart_slot = st.empty()
-
-
-def update_ui_metrics():
+# ===================== METRICS =====================
+def calculate_metrics():
     total_in = st.session_state.adult_in + st.session_state.child_in
     total_out = st.session_state.adult_out + st.session_state.child_out
+    current_inside = max(total_in - total_out, 0)
     revenue = (st.session_state.adult_in * 100000) + (st.session_state.child_in * 50000)
-
-    slot_adult_in.metric(label="Người lớn VÀO (Lượt)", value=st.session_state.adult_in)
-    slot_child_in.metric(label="Trẻ em VÀO (Lượt)", value=st.session_state.child_in)
-    slot_total_in.metric(label="TỔNG LƯỢT VÀO", value=total_in)
-
-    slot_adult_out.metric(label="Người lớn RA (Lượt)", value=st.session_state.adult_out)
-    slot_child_out.metric(label="Trẻ em RA (Lượt)", value=st.session_state.child_out)
-    slot_total_out.metric(label="TỔNG LƯỢT RA", value=total_out)
-
-    slot_revenue.metric(label="Ước Tính Doanh Thu (VNĐ)", value=f"{revenue:,}")
+    return total_in, total_out, current_inside, revenue
 
 
-update_ui_metrics()
+def render_metrics():
+    total_in, total_out, current_inside, revenue = calculate_metrics()
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Tổng lượt VÀO", total_in)
+    m2.metric("Tổng lượt RA", total_out)
+    m3.metric("Đang bên trong", current_inside)
+    m4.metric("Doanh thu ước tính", f"{revenue:,} VNĐ")
 
+    a1, a2, c1, c2 = st.columns(4)
+    a1.metric("Người lớn vào", st.session_state.adult_in)
+    a2.metric("Người lớn ra", st.session_state.adult_out)
+    c1.metric("Trẻ em vào", st.session_state.child_in)
+    c2.metric("Trẻ em ra", st.session_state.child_out)
+
+metrics_slot = st.empty()
+with metrics_slot.container():
+    render_metrics()
+
+# ===================== LAYOUT =====================
+left_col, right_col = st.columns([7, 3], gap="large")
+
+with left_col:
+    st.markdown('<div class="glass-card"><div class="section-title">📹 Màn hình nhận diện</div>', unsafe_allow_html=True)
+    st_frame = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with right_col:
+    st.markdown('<div class="glass-card"><div class="section-title">📊 Biểu đồ lưu lượng</div>', unsafe_allow_html=True)
+    chart_slot = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="glass-card"><div class="section-title">🧾 Nhật ký sự kiện</div>', unsafe_allow_html=True)
+    log_slot = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def refresh_dashboard():
+    with metrics_slot.container():
+        render_metrics()
+
+    if st.session_state.log_list:
+        df_log = pd.DataFrame(st.session_state.log_list)
+        log_slot.dataframe(df_log.tail(12), use_container_width=True, hide_index=True)
+        chart_data = df_log.groupby(["Thoi_Gian", "Chieu_Di"]).size().unstack(fill_value=0)
+        chart_slot.line_chart(chart_data)
+    else:
+        log_slot.info("Chưa có lượt nào được ghi nhận.")
+        chart_slot.info("Biểu đồ sẽ hiển thị khi có dữ liệu.")
+
+refresh_dashboard()
+
+# ===================== IMAGE MODE =====================
 if source_type == "Hình ảnh":
-    uploaded_file = main_col1.file_uploader(
-        "Tải ảnh lên...", type=["jpg", "jpeg", "png"]
-    )
+    uploaded_file = left_col.file_uploader("Tải ảnh lên", type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         frame = cv2.imdecode(file_bytes, 1)
@@ -163,36 +258,32 @@ if source_type == "Hình ảnh":
         annotated_frame = results[0].plot()
         st_frame.image(annotated_frame, channels="BGR", use_container_width=True)
 
+# ===================== VIDEO / CAMERA MODE =====================
 else:
     run_tracking = False
     video_path = None
 
     if source_type == "Video (File)":
-        uploaded_video = main_col1.file_uploader(
-            "Tải video lên...", type=["mp4", "avi", "mov"]
-        )
+        uploaded_video = left_col.file_uploader("Tải video lên", type=["mp4", "avi", "mov"])
         if uploaded_video is not None:
             tfile = tempfile.NamedTemporaryFile(delete=False)
             tfile.write(uploaded_video.read())
             video_path = tfile.name
-            run_tracking = main_col1.checkbox("Bắt đầu xử lý Video")
+            run_tracking = left_col.checkbox("▶️ Bắt đầu xử lý video")
     elif source_type == "Webcam Máy Tính":
         video_path = 0
-        run_tracking = main_col1.checkbox("Mở Webcam Máy Tính")
+        run_tracking = left_col.checkbox("📷 Mở webcam")
     elif source_type == "Điện Thoại (IP Camera)":
         video_path = ip_url
-        run_tracking = main_col1.checkbox("Kết nối IP Camera")
+        run_tracking = left_col.checkbox("📱 Kết nối IP Camera")
 
     if run_tracking and video_path is not None:
         cap = cv2.VideoCapture(video_path)
-
-        # Ha do phan giai cua camera phan cung de tiet kiem bang thong truyen tai
         if source_type in ("Webcam Máy Tính", "Điện Thoại (IP Camera)"):
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
         prev_time = 0
-
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -201,11 +292,9 @@ else:
             curr_time = time.time()
             fps = 1 / (curr_time - prev_time) if prev_time != 0 else 0
             prev_time = curr_time
-            slot_fps.markdown(f"**Tốc độ xử lý:** {fps:.1f} FPS")
+            slot_fps.markdown(f"**⚡ FPS:** {fps:.1f}")
 
             h, w, _ = frame.shape
-
-            # TOI UU HIEU NANG: Vo hieu hoa verbose de triet tieu I/O overhead tren Terminal
             results = model.track(
                 frame,
                 persist=True,
@@ -216,168 +305,87 @@ else:
 
             if direction in ("Từ Trên xuống Dưới", "Từ Dưới lên Trên"):
                 cy_line = int(h * (line_position / 100))
-                cv2.line(frame, (0, cy_line), (w, cy_line), (255, 0, 0), 3)
-                cv2.putText(
-                    frame,
-                    f"Line Y: {cy_line}",
-                    (10, cy_line - 15),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (255, 0, 0),
-                    2,
-                )
+                cv2.line(frame, (0, cy_line), (w, cy_line), (255, 190, 0), 3)
+                cv2.putText(frame, "CONTROL LINE", (15, cy_line - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 190, 0), 2)
             else:
                 cx_line = int(w * (line_position / 100))
-                cv2.line(frame, (cx_line, 0), (cx_line, h), (255, 0, 0), 3)
-                cv2.putText(
-                    frame,
-                    f"Line X: {cx_line}",
-                    (cx_line + 10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (255, 0, 0),
-                    2,
-                )
+                cv2.line(frame, (cx_line, 0), (cx_line, h), (255, 190, 0), 3)
+                cv2.putText(frame, "CONTROL LINE", (cx_line + 10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 190, 0), 2)
 
             if results[0].boxes is not None and results[0].boxes.id is not None:
                 boxes = results[0].boxes.xyxy.cpu().numpy()
                 ids = results[0].boxes.id.cpu().numpy().astype(int)
                 clss = results[0].boxes.cls.cpu().numpy().astype(int)
-
-                # Co kiem soat trang thai thay doi thong ke de toi uu luong ve UI
                 ui_needs_update = False
 
                 for box, id_obj, cls in zip(boxes, ids, clss):
-                    bx1, by1, bx2, by2 = (
-                        int(box[0]),
-                        int(box[1]),
-                        int(box[2]),
-                        int(box[3]),
-                    )
+                    bx1, by1, bx2, by2 = map(int, box[:4])
                     cx = int((bx1 + bx2) / 2)
                     cy = int((by1 + by2) / 2)
                     box_h = by2 - by1
-
                     estimated_height = (w1 * box_h) + (w2 * by2) + bias
 
-                    if id_obj not in st.session_state.track_history:
-                        st.session_state.track_history[id_obj] = []
-                    st.session_state.track_history[id_obj].append((cx, cy))
-
-                    # TOI UU BO NHO: Cat tiat do dai mang lich su tracking ngan lag phinh bo nho
+                    st.session_state.track_history.setdefault(id_obj, []).append((cx, cy))
                     if len(st.session_state.track_history[id_obj]) > 30:
                         st.session_state.track_history[id_obj].pop(0)
 
-                    hist_len = len(st.session_state.track_history[id_obj])
-                    if hist_len > 1:
-                        for i in range(1, min(15, hist_len)):
-                            pt1 = st.session_state.track_history[id_obj][-i]
-                            pt2 = st.session_state.track_history[id_obj][-i - 1]
-                            cv2.line(frame, pt1, pt2, (0, 255, 255), 2)
+                    hist = st.session_state.track_history[id_obj]
+                    for i in range(1, min(15, len(hist))):
+                        cv2.line(frame, hist[-i], hist[-i - 1], (0, 255, 255), 2)
 
-                    coord_text = (
-                        f"Y:{cy}"
-                        if direction in ("Từ Trên xuống Dưới", "Từ Dưới lên Trên")
-                        else f"X:{cx}"
-                    )
-                    label = f"ID: {id_obj} | {'Adult' if cls == 0 else 'Child'} | {coord_text}"
+                    obj_type = "Người lớn" if cls == 0 else "Trẻ em"
+                    color = (34, 197, 94) if cls == 0 else (239, 68, 68)
+                    label = f"ID {id_obj} | {obj_type} | {estimated_height:.0f}cm"
+                    cv2.rectangle(frame, (bx1, by1), (bx2, by2), color, 2)
+                    cv2.rectangle(frame, (bx1, by1 - 28), (bx1 + 260, by1), color, -1)
+                    cv2.putText(frame, label, (bx1 + 6, by1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+                    cv2.circle(frame, (cx, cy), 5, (255, 255, 255), -1)
 
-                    cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
-                    cv2.putText(
-                        frame,
-                        label,
-                        (bx1, by1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 255, 0),
-                        2,
-                    )
-                    cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)
-
-                    if hist_len > 1:
-                        prev_cx, prev_cy = st.session_state.track_history[id_obj][-2]
-                        current_cx, current_cy = st.session_state.track_history[id_obj][
-                            -1
-                        ]
-
-                        is_in = False
-                        is_out = False
+                    if len(hist) > 1:
+                        prev_cx, prev_cy = hist[-2]
+                        current_cx, current_cy = hist[-1]
+                        is_in = is_out = False
 
                         if direction == "Từ Trên xuống Dưới":
-                            if prev_cy < cy_line <= current_cy:
-                                is_in = True
-                            elif prev_cy > cy_line >= current_cy:
-                                is_out = True
+                            is_in = prev_cy < cy_line <= current_cy
+                            is_out = prev_cy > cy_line >= current_cy
                         elif direction == "Từ Dưới lên Trên":
-                            if prev_cy > cy_line >= current_cy:
-                                is_in = True
-                            elif prev_cy < cy_line <= current_cy:
-                                is_out = True
+                            is_in = prev_cy > cy_line >= current_cy
+                            is_out = prev_cy < cy_line <= current_cy
                         elif direction == "Từ Trái sang Phải":
-                            if prev_cx < cx_line <= current_cx:
-                                is_in = True
-                            elif prev_cx > cx_line >= current_cx:
-                                is_out = True
+                            is_in = prev_cx < cx_line <= current_cx
+                            is_out = prev_cx > cx_line >= current_cx
                         elif direction == "Từ Phải sang Trái":
-                            if prev_cx > cx_line >= current_cx:
-                                is_in = True
-                            elif prev_cx < cx_line <= current_cx:
-                                is_out = True
+                            is_in = prev_cx > cx_line >= current_cx
+                            is_out = prev_cx < cx_line <= current_cx
 
                         now_str = datetime.now().strftime("%H:%M:%S")
-                        obj_type = "Người lớn" if cls == 0 else "Trẻ em"
-
                         if is_in and id_obj not in st.session_state.counted_in_ids:
                             if cls == 0:
                                 st.session_state.adult_in += 1
-                            elif cls == 1:
+                            else:
                                 st.session_state.child_in += 1
                             st.session_state.counted_in_ids.add(id_obj)
-                            st.session_state.log_list.append(
-                                {
-                                    "Thoi_Gian": now_str,
-                                    "Doi_Tuong": obj_type,
-                                    "Chieu_Di": "VÀO",
-                                    "Chieu_Cao_CM": round(estimated_height, 1),
-                                }
-                            )
+                            st.session_state.log_list.append({"Thoi_Gian": now_str, "Doi_Tuong": obj_type, "Chieu_Di": "VÀO", "Chieu_Cao_CM": round(estimated_height, 1)})
                             ui_needs_update = True
 
                         if is_out and id_obj not in st.session_state.counted_out_ids:
                             if cls == 0:
                                 st.session_state.adult_out += 1
-                            elif cls == 1:
+                            else:
                                 st.session_state.child_out += 1
                             st.session_state.counted_out_ids.add(id_obj)
-                            st.session_state.log_list.append(
-                                {
-                                    "Thoi_Gian": now_str,
-                                    "Doi_Tuong": obj_type,
-                                    "Chieu_Di": "RA",
-                                    "Chieu_Cao_CM": round(estimated_height, 1),
-                                }
-                            )
+                            st.session_state.log_list.append({"Thoi_Gian": now_str, "Doi_Tuong": obj_type, "Chieu_Di": "RA", "Chieu_Cao_CM": round(estimated_height, 1)})
                             ui_needs_update = True
 
-                # TOI UU HIEU NANG: Chi cap nhat UI metric khi co bien dong so luong thuc te
                 if ui_needs_update:
-                    update_ui_metrics()
+                    refresh_dashboard()
 
             st_frame.image(frame, channels="BGR", use_container_width=True)
-
-            # TOI UU DO THI: Chi build DataFrame tu list khi can ve bieu do chuoi thoi gian
-            if st.session_state.log_list:
-                df_chart = pd.DataFrame(st.session_state.log_list)
-                chart_data = (
-                    df_chart.groupby(["Thoi_Gian", "Chieu_Di"])
-                    .size()
-                    .unstack(fill_value=0)
-                )
-                chart_slot.line_chart(chart_data)
 
         cap.release()
         if source_type == "Video (File)" and video_path:
             try:
                 os.remove(video_path)
-            except:
+            except OSError:
                 pass
