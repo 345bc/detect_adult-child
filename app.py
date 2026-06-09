@@ -15,11 +15,7 @@ model_path = r"runs/detect/runs/train/adult_child_v1/weights/best.pt"
 
 @st.cache_resource
 def load_model():
-    model = YOLO("best.pt")
-    # Tu dong cau hinh phan cung toi uu hoa GPU hoac CPU de tang toc
-    device = "cuda" if torch.torch.cuda.is_available() else "cpu"
-    model.to(device)
-    return model
+    return YOLO(model_path)
 
 
 model = load_model()
@@ -62,6 +58,11 @@ st.sidebar.title("Cấu Hình Hệ Thống")
 source_type = st.sidebar.selectbox(
     "Chọn nguồn đầu vào:",
     ("Hình ảnh", "Video (File)", "Webcam Máy Tính", "Điện Thoại (IP Camera)"),
+)
+hardware_option = st.sidebar.selectbox(
+    "Thiết bị xử lý (Device):",
+    ("Tự động (GPU nếu có)", "Chỉ dùng CPU"),
+    help="Chọn GPU để tối ưu tốc độ hoặc CPU nếu gặp lỗi tràn bộ nhớ (Out of memory) khi huấn luyện song song."
 )
 
 ip_url = ""
@@ -159,7 +160,15 @@ if source_type == "Hình ảnh":
     if uploaded_file is not None:
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         frame = cv2.imdecode(file_bytes, 1)
-        results = model(frame, conf=conf_threshold)
+        device_to_use = 0 if (hardware_option == "Tự động (GPU nếu có)" and torch.cuda.is_available()) else "cpu"
+        try:
+            results = model(frame, conf=conf_threshold, device=device_to_use)
+        except Exception as e:
+            if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
+                st.warning("⚠️ Lỗi bộ nhớ GPU (CUDA OOM), tự động chuyển sang xử lý trên CPU...")
+                results = model(frame, conf=conf_threshold, device="cpu")
+            else:
+                raise e
         annotated_frame = results[0].plot()
         st_frame.image(annotated_frame, channels="BGR", use_container_width=True)
 
@@ -206,13 +215,29 @@ else:
             h, w, _ = frame.shape
 
             # TOI UU HIEU NANG: Vo hieu hoa verbose de triet tieu I/O overhead tren Terminal
-            results = model.track(
-                frame,
-                persist=True,
-                conf=conf_threshold,
-                tracker="bytetrack.yaml",
-                verbose=False,
-            )
+            device_to_use = 0 if (hardware_option == "Tự động (GPU nếu có)" and torch.cuda.is_available()) else "cpu"
+            try:
+                results = model.track(
+                    frame,
+                    persist=True,
+                    conf=conf_threshold,
+                    tracker="bytetrack.yaml",
+                    verbose=False,
+                    device=device_to_use,
+                )
+            except Exception as e:
+                if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
+                    st.warning("⚠️ Lỗi bộ nhớ GPU (CUDA OOM), tự động chuyển sang xử lý trên CPU...")
+                    results = model.track(
+                        frame,
+                        persist=True,
+                        conf=conf_threshold,
+                        tracker="bytetrack.yaml",
+                        verbose=False,
+                        device="cpu",
+                    )
+                else:
+                    raise e
 
             if direction in ("Từ Trên xuống Dưới", "Từ Dưới lên Trên"):
                 cy_line = int(h * (line_position / 100))
